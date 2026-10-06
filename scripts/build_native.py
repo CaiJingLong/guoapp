@@ -1,6 +1,7 @@
 import argparse
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 from pathlib import Path
@@ -11,6 +12,8 @@ root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
 parser.add_argument('--platform', choices=['android', 'windows', 'darwin'], required=True)
 parser.add_argument('--abi', action='append', choices=['arm64-v8a', 'armeabi-v7a', 'x86_64'])
+parser.add_argument('--darwin-arch', action='append', choices=['arm64', 'x86_64'])
+parser.add_argument('--darwin-output', type=Path)
 add_variant_argument(parser)
 options = parser.parse_args()
 variant = BuildVariant(options.all_sources)
@@ -70,8 +73,29 @@ elif options.platform == 'windows':
     build('windows', 'amd64', compiler, root / 'windows' / 'runner' / 'duanju_core.dll',
           {'CGO_LDFLAGS': '-static-libgcc'})
 else:
-    compiler = shutil.which('clang')
-    if not compiler:
-        raise SystemExit('需要安装 Xcode Command Line Tools。')
-    build('darwin', 'arm64' if platform.machine() == 'arm64' else 'amd64', compiler,
-          root / 'native' / 'build' / 'darwin' / 'libduanju_core.dylib')
+    if platform.system() != 'Darwin':
+        raise SystemExit('macOS 核心构建需要 macOS 和 Xcode Command Line Tools。')
+    compiler = subprocess.check_output(['xcrun', '--sdk', 'macosx', '--find', 'clang'], text=True).strip()
+    sdk = subprocess.check_output(['xcrun', '--sdk', 'macosx', '--show-sdk-path'], text=True).strip()
+    minimum = os.environ.get('MACOSX_DEPLOYMENT_TARGET', '12.0')
+    architectures = list(dict.fromkeys(options.darwin_arch or [platform.machine()]))
+    output = (options.darwin_output or root / 'native' / 'build' / 'darwin' / 'libduanju_core.dylib').resolve()
+    libraries = []
+    for architecture in architectures:
+        if architecture not in {'arm64', 'x86_64'}:
+            raise SystemExit('不支持的 macOS 架构：' + architecture)
+        flags = shlex.join(['-isysroot', sdk, '-arch', architecture, '-mmacosx-version-min=' + minimum])
+        library = root / 'native' / 'build' / 'darwin' / architecture / 'libduanju_core.dylib'
+        build('darwin', 'amd64' if architecture == 'x86_64' else 'arm64', compiler, library, {
+            'CGO_CFLAGS': flags,
+            'CGO_LDFLAGS': flags,
+            'MACOSX_DEPLOYMENT_TARGET': minimum,
+        })
+        libraries.append(library)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if len(libraries) == 1:
+        if libraries[0] != output:
+            shutil.copy2(libraries[0], output)
+    else:
+        subprocess.run(['xcrun', 'lipo', '-create', *map(str, libraries), '-output', str(output)], check=True)
+    subprocess.run(['xcrun', 'install_name_tool', '-id', '@rpath/libduanju_core.dylib', str(output)], check=True)

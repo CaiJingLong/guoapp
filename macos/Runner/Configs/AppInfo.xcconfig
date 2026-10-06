@@ -1,0 +1,6 @@
+
+PRODUCT_NAME = duanju_app
+
+PRODUCT_BUNDLE_IDENTIFIER = com.duanju.duanjuApp
+
+PRODUCT_COPYRIGHT = Copyright © 2026 真果鉴 contributors. All rights reserved.

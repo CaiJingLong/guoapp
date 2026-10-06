@@ -19,6 +19,10 @@ migration:
       create_revision: 9584c6713b324636289d067944a46fd6b49df14b
       base_revision: 9584c6713b324636289d067944a46fd6b49df14b
 
+    - platform: macos
+      create_revision: db50e20168db8fee486b9abf32fc912de3bc5b6a
+      base_revision: db50e20168db8fee486b9abf32fc912de3bc5b6a
+
   # User provided section
 
   # List of Local paths (relative to this file) that should be
@@ -28,3 +32,4 @@ migration:
   unmanaged_files:
     - 'lib/main.dart'
     - 'ios/Runner.xcodeproj/project.pbxproj'
+    - 'macos/Runner.xcodeproj/project.pbxproj'

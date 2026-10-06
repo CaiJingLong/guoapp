@@ -2,11 +2,15 @@
 
 > ⚠️ **免责声明**：本项目源码来自网上大名鼎鼎的**鱼佬**（原作者）。我只是把它拿来打包、测试着玩，方便自己用，**不保证任何可用性，随时可能删库**。
 
-Flutter 多端独立短剧 / 影视应用，原名「短剧库 APP」。站源请求、解析、下载和播放均在设备上完成，不依赖自建服务。当前源码版本：**0.2.51+57**。
+Flutter 多端独立短剧 / 影视应用，原名「短剧库 APP」。站源请求、解析、下载和播放均在设备上完成，不依赖自建服务。当前源码版本：**0.2.67+74（开发快照，未完成全量验收）**。
 
-本轮在 0.2.50 基线上新增两个原生站源：**韩小圈**（`hanxiaoquan`，韩剧 / 韩国电影 / 韩国综艺 / 韩国动漫）与**鬼片网**（`guipian`，鬼片 / 电视剧 / 动漫）。默认可见站源顺序为：**红果 → 韩小圈 → 鬼片 → 青空**。
+本分支新增 macOS 工程、Go 动态库编译嵌入、桌面窗口 / 全屏、系统代理、设备识别、本机签名入口及合成媒体集成测试，并接入双版本 GitHub Actions 构建与预览包发布。
 
-> 说明：应用长期按「只维护源码与定向测试，集中验证另行安排」的方式推进。未完成集中验证与真机验收的项目保持未验收状态；历史版本的检查记录不能作为后续新增功能的验收结论。
+共享 Go 核心的 MP4 / HLS 误判修复单独提交于 [播放修复 PR #3](https://github.com/zhoufuweigg/guoapp/pull/3)，不包含在此平台分支中。两者都从上游 `main` 分出；建议先合入播放修复，再对 macOS 做完整媒体验收。下文已通过的播放集成结果来自同时包含该修复的本地组合版本，不能当作当前独立分支已通过播放验收的证明。
+
+默认可见站源顺序为：**红果 → 韩小圈 → 鬼片 → 青空**。
+
+> 说明：本轮按用户要求执行 macOS 构建与验证；其他平台沿用暂停集中回归的安排。未完成集中验证与真机验收的项目保持未验收状态；历史版本的检查记录不能作为后续新增功能的验收结论。
 
 | 编译方式 | 应用名称 | 可用站源 |
 | --- | --- | --- |
@@ -15,7 +19,7 @@ Flutter 多端独立短剧 / 影视应用，原名「短剧库 APP」。站源�
 
 默认可见站源（红果、韩小圈、鬼片、青空）无需密码；其余站源默认隐藏，在站源管理里通过密码锁解锁后显示。已有受限用户不会自动获得新增站源权限，管理员可在用户管理中勾选。
 
-这是**编译选项**，应用内不能切换版本。标题、Android 桌面名称与电视横幅、Windows 窗口与分发文件名、iOS 显示名随编译选项变化。界面、站源调用、原生下载调度同时限制可用站源；红果版不会访问或继续执行其他站源的旧任务。
+这是**编译选项**，应用内不能切换版本。标题、Android 桌面名称与电视横幅、Windows 窗口与分发文件名、iOS / macOS 显示名随编译选项变化。界面、站源调用、原生下载调度同时限制可用站源；红果版不会访问或继续执行其他站源的旧任务。
 
 两版保留原 Android / iOS 应用标识及数据目录；Android 使用同一签名可相互覆盖升级，不能作为两个独立正式应用并排安装。切换版本保留追剧、观看记录、用户权限和下载记录；备份格式保持兼容。
 
@@ -71,6 +75,22 @@ Flutter 多端独立短剧 / 影视应用，原名「短剧库 APP」。站源�
 | Windows 10/11 x64 | 完整 ZIP 解压后运行 `hongguojian.exe` / `zhenguojian.exe`，保留所有 DLL 与 `data`；局域网原生发现依赖 Windows 10 1903+ |
 | Android TV | 与手机共用源码，自动识别电视模式并保持横屏；待电视 / 盒子实机验收 |
 | iOS 15.1+ | 已加入工程、Go 核心链接、媒体依赖、文件管理与构建脚本；iOS 播放页禁用 media_kit_video 硬件纹理加速以规避 libmpv 渲染崩溃；待 Xcode 构建与真机验收，无已签名 IPA |
+| macOS 12.0+（工程目标） | 独立分支的两版 Release 已构建并通过临时签名校验；主程序与 Go 核心包含 arm64 / x86_64。此前组合版本另已验证 Debug 和本机 Apple Development 证书签名。Apple Silicon 组合版本（含播放修复）已通过合成媒体集成测试；Intel 执行、最低系统版本及真实站源完整闭环待验证，未公证 |
+
+macOS 当前按独立桌面应用接入，关闭 App Sandbox，以沿用用户选择的下载 / 导出目录与持久化路径；保留网络访问、监听及局域网用途声明。关闭窗口会退出应用并终止后台任务，最小化不等同于退出。画质增强仍只支持 Windows，macOS 暂未接入画中画；macOS 已加入 GitHub Actions 构建与预览包发布，首次云端执行状态以 Actions 为准。
+
+本轮后续待办按顺序执行：
+
+- [x] 安装要求的 Flutter SDK，完成 macOS Debug、Release 与本机签名构建。
+- [x] 在包含播放修复的组合版本中禁用站源图片，以合成媒体验证目录进入播放、MP4 / AES HLS / CENC 解码、跳转与窗口全屏。
+- [x] 在包含播放修复的组合版本中验证真实 Go 下载 MP4 / HLS、离线 Emby 导出，以及原生 FFmpeg 探测、封装和拼接。
+- [ ] 验收真实站源搜索、详情、选集、错误重试与长期播放，修复全量回归失败。
+- [ ] 验收代理切换、局域网互联、完整合并队列与退出时任务恢复。
+- [x] 配置两版 macOS 通用架构构建、签名 / 摘要校验、Actions 产物和受信任事件的预览包发布。
+- [ ] 合入播放修复后复验 macOS 媒体集成，并观察首次云端 CI。
+- [ ] 补 Intel 实机、最低系统版本、应用图标和公证；当前工程使用 Flutter 模板图标。
+
+2026-10-07 本地组合版本的验证环境为 Flutter 3.47.4 / Dart 3.13.3、Xcode 27.0、CocoaPods 1.15.2、Go 1.27.1。Python 脚本测试 19 项通过；Go 播放与下载相关 race 测试通过；macOS 集成测试通过，并输出 `build/device-test/results/playback.json`。Computer Use 已确认合成 MP4 / HLS / CENC 的实际画面、选集及进入 / 退出全屏。Flutter 全量单元测试 132 项通过、23 项失败，涉及焦点、目录、下载、媒体合并等现有行为与断言；Go 全量测试在目录缓存 / 游标测试失败并触发 panic；Dart 全量分析无 error，有 105 项 warning / info，新增 macOS 验证文件分析无问题。上述结果不代表全项目通过验收，Android / Windows / iOS 本轮未构建。
 
 `INSTALL_FAILED_NO_MATCHING_ABIS` 表示 APK 与设备架构不匹配，请更换对应架构安装包。
 
@@ -81,10 +101,13 @@ Flutter 多端独立短剧 / 影视应用，原名「短剧库 APP」。站源�
 | 产物 | 内容 |
 | --- | --- |
 | `*-android` | 三种架构 APK 和 SHA256 |
-| `*-windows` | 完整 ZIP 和 SHA256 |
-| `*-ios-unsigned` | 未签名 `.app` ZIP 和 SHA256，不能直接当已签名 IPA 安装 |
+| `*-macos` | arm64 / x86_64 通用 `.app` ZIP 和 SHA256，临时签名、未公证 |
 
-推送 `main` 且 android / ios / windows 全部构建成功时，自动创建 / 更新 GitHub Release（tag `app-v{version}`）。发布新版本前需先在 `pubspec.yaml` 提升 `version`，否则会覆盖同名 tag 的 Release。
+macOS 在 `macos-26` runner 上分别构建红果版和全站源版，固定 Flutter 3.47.4，校验主程序 / Go dylib 的两种架构、嵌套签名和 ZIP 摘要。PR 只执行检查、构建和上传 Actions 产物，不创建 Release；Windows / iOS 的占位构建原本处于关闭状态，本轮未启用。
+
+当 `checks`、Android、macOS 作业均成功，且事件为 `main` / `master` / `v*` 标签推送，或在默认分支手动触发时，自动创建 / 更新 GitHub Release（tag `app-v{version}`，版本号中的 `+` 转为 `-`）。工作流默认只有 `contents: read`，发布作业单独获得写权限。全量 Dart / Go 回归仍沿用现有非阻断策略，作业成功不表示全量测试通过。发布新版本前需先提升 `pubspec.yaml` 的版本，否则会更新同名 Release。
+
+云端 macOS 使用 ad-hoc 临时签名，不需要 Apple 证书 Secrets，也不包含本机 Apple Development 证书；正式分发签名和公证尚未接入。工作流配置已通过 actionlint；独立 worktree 的两版 Release 构建、签名 / 摘要校验、19 项 Python 测试及新增 Dart 验证文件分析通过。本地结果不代替 GitHub runner 的首次实跑。
 
 Android 正式发布使用同一签名并递增构建号，在仓库 Secrets 配置：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`。未配置时生成 debug 签名预览包。
 
@@ -99,7 +122,7 @@ keyPassword=你的密码
 
 ## 开发与构建
 
-Flutter `3.47.4`、Dart `3.12+`、Go `1.24.1+`、Python `3.10+`。Android 需要 JDK 17、SDK 36、NDK `28.2.13676358`；Windows 需要 Visual Studio C++ 桌面组件及 MinGW-w64 x64；iOS 需要 macOS、完整 Xcode 和 CocoaPods。
+Flutter `3.47.4`、Dart `3.12+`、Go `1.24.1+`、Python `3.10+`（建议 `3.12+`）。Android 需要 JDK 17、SDK 36、NDK `28.2.13676358`；Windows 需要 Visual Studio C++ 桌面组件及 MinGW-w64 x64；iOS / macOS 需要 macOS、完整 Xcode 和 CocoaPods。macOS 已使用 Flutter 3.47.4 构建，媒体插件当前通过 CocoaPods 集成。
 
 构建脚本对子进程默认设置 `GOPROXY=https://goproxy.cn,direct`、`GOSUMDB=off`，同名环境变量可覆盖。
 
@@ -123,7 +146,33 @@ python3 scripts/build_ios.py --core-only [--simulator]
 python3 scripts/build_ios.py --export-options /path/to/ExportOptions.plist
 ~~~
 
-产物在 `dist/android`、`dist/windows`、`dist/ios`，红果版以 `hongguojian-` 开头，全站源版以 `zhenguojian-` 开头。
+macOS 构建入口：
+
+~~~sh
+python3 scripts/build_macos.py                 # 红果鉴开发快照 ZIP
+python3 scripts/build_macos.py --all-sources   # 真果鉴开发快照 ZIP
+python3 scripts/build_macos.py --debug         # 只生成 Debug .app
+python3 scripts/build_macos.py --all-sources --sign-identity 'Apple Development: 你的证书名称'
+~~~
+
+可用 `FLUTTER_BIN=/绝对路径/flutter` 指定符合版本要求的 SDK。脚本沿用锁文件安装依赖，由 Flutter 驱动 CocoaPods 与 Xcode；Xcode 构建阶段自动按 `DART_DEFINES` 与 `ARCHS` 编译 Go 核心，放入 `.app/Contents/Frameworks/libduanju_core.dylib` 并随应用签名，无需手工复制。终端的 PATH 需包含 Go 与 CocoaPods；直接从 Xcode 构建时也需配置可访问的工具路径。
+
+调试可执行 `flutter pub get --enforce-lockfile`，再 `flutter run -d macos`；全站源版加 `--dart-define=ALL_SOURCES=true`。Xcode 会同步选择核心版本，避免混装。单独编译 Go 核心可使用 `python3 scripts/build_native.py --platform darwin`，需要多架构时追加 `--darwin-arch arm64 --darwin-arch x86_64`。
+
+产物在 `dist/android`、`dist/windows`、`dist/ios`、`dist/macos`，红果版以 `hongguojian-` 开头，全站源版以 `zhenguojian-` 开头。macOS 脚本生成 `*-macos-preview.zip` 与同名 `.zip.sha256`；默认临时签名，传入 `--sign-identity` 可使用钥匙串中的本机证书重签所有嵌套原生库。开发证书签名不等于公证或面向其他电脑的正式分发签名。验证包可添加 `--disable-remote-images`，文件名追加 `-no-images`。
+
+macOS 合成媒体验证（需要本机 `ffmpeg`，验证期间不请求站源图片）：
+
+~~~sh
+python3 scripts/create_test_media.py
+python3 scripts/serve_test_media.py
+# 另一个终端执行
+flutter drive -d macos --driver=test_driver/playback.dart --target=integration_test/macos_test.dart --dart-define=ALL_SOURCES=true --dart-define=DISABLE_REMOTE_IMAGES=true
+# 手动查看合成画面
+flutter run -d macos --target=test_driver/macos_preview.dart --dart-define=ALL_SOURCES=true --dart-define=DISABLE_REMOTE_IMAGES=true
+~~~
+
+验证会使用应用数据目录，创建并清理专用合成剧集的下载与导出文件；不要同时运行正式应用或其他集成测试。
 
 首次 Android 调试先编译对应架构核心，再运行：
 
@@ -177,7 +226,7 @@ python3 scripts/sync_source.py --check
 | --- | --- |
 | `lib` | 页面、播放器、本地用户、FFI、下载和媒体处理 |
 | `native/core`、`native/bridge` | 独立站源核心、缓存、下载、目录迁移及 C ABI |
-| `android`、`windows`、`ios` | 平台工程与必要资源 |
+| `android`、`windows`、`ios`、`macos` | 平台工程与必要资源 |
 | `assets/video_enhancement`、`packages/media_kit_libs_windows_video` | 增强 Shader 与许可、固定 Windows 媒体依赖插件 |
 | `scripts`、`.github/workflows` | 构建、签名、验证、同步和版本快照 |
 | `test`、`integration_test` | 自动化与设备回归 |

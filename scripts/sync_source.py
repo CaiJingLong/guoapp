@@ -46,6 +46,7 @@ EXCLUDED_PATHS = {
     'windows/flutter/generated_plugin_registrant.cc',
     'windows/flutter/generated_plugin_registrant.h',
     'windows/flutter/generated_plugins.cmake',
+    'macos/Flutter/GeneratedPluginRegistrant.swift',
 }
 REQUIRED_FILES = {
     'AGENTS.md', 'README.md', 'pubspec.yaml', 'pubspec.lock', 'lib/main.dart',

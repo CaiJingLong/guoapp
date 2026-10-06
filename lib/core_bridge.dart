@@ -35,8 +35,19 @@ String _nativeRequest(String body) {
     );
   } else if (Platform.isIOS) {
     library = DynamicLibrary.process();
+  } else if (Platform.isMacOS) {
+    library = DynamicLibrary.open(
+      path.normalize(
+        path.join(
+          path.dirname(Platform.resolvedExecutable),
+          '..',
+          'Frameworks',
+          'libduanju_core.dylib',
+        ),
+      ),
+    );
   } else {
-    throw UnsupportedError('当前首版支持 Android 手机和 Windows 电脑');
+    throw UnsupportedError('当前平台尚未接入本地核心');
   }
   final request = library.lookupFunction<_NativeRequest, _DartRequest>(
     'DuanjuRequest',

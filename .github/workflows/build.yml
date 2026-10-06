@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: app-build-${{ github.workflow }}-${{ github.ref }}
@@ -138,26 +138,9 @@ jobs:
           path: dist/android/*
           if-no-files-found: error
           retention-days: 14
-  windows:
-    if: false
+  macos:
     needs: checks
-    runs-on: windows-latest
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - edition: hongguojian
-            arguments: ''
-          - edition: zhenguojian
-            arguments: '--all-sources'
-    steps:
-      - uses: actions/checkout@v4
-
-  ios:
-    if: false
-    needs: checks
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -169,10 +152,53 @@ jobs:
             arguments: '--all-sources'
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: native/go.mod
+          cache-dependency-path: native/go.sum
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.4'
+          channel: stable
+          cache: true
+      - name: 检查构建工具并启用通用架构
+        run: |
+          xcodebuild -version
+          pod --version
+          flutter config --enable-macos-desktop --no-enable-macos-arm64-only
+      - name: 构建临时签名的 macOS 预览包
+        run: python scripts/build_macos.py ${{ matrix.arguments }}
+      - name: 校验架构、签名和压缩包摘要
+        run: |
+          set -euo pipefail
+          app=build/macos/Build/Products/Release/duanju_app.app
+          for arch in arm64 x86_64; do
+            lipo -verify_arch "$arch" "$app/Contents/MacOS/duanju_app"
+            lipo -verify_arch "$arch" "$app/Contents/Frameworks/libduanju_core.dylib"
+          done
+          codesign --verify --deep --strict "$app"
+          cd dist/macos
+          shasum -a 256 -c ./*.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.edition }}-macos
+          path: dist/macos/*
+          if-no-files-found: error
+          retention-days: 14
 
   release:
-    needs: [android]
-    if: always() && needs.android.result == 'success'
+    needs: [checks, android, macos]
+    if: >-
+      !cancelled() &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'workflow_dispatch' &&
+        github.ref_name == github.event.repository.default_branch)) &&
+      needs.checks.result == 'success' &&
+      needs.android.result == 'success' &&
+      needs.macos.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -222,11 +248,9 @@ jobs:
             printf '%s\n' "- *-arm64-v8a.apk：绝大多数手机选这个"
             printf '%s\n' "- *-armeabi-v7a.apk：较老的 32 位手机"
             printf '%s\n' "- *-x86_64.apk：模拟器"
-            printf '\n%s\n' "iOS（未签名，需自行签名后才能安装）："
-            printf '%s\n' "- *-ios-unsigned.ipa：未签名 IPA，用 AltStore / Sideloadly / TrollStore 等工具自签后安装"
-            printf '%s\n' "- *-ios-unsigned-app.zip：未签名 Runner.app 压缩包，供自行签名 / 打包使用"
-            printf '\n%s\n' "Windows（解压后运行 hongguojian.exe 或 zhenguojian.exe）："
-            printf '%s\n' "- *-windows-x64.zip：Windows 10/11 x64 完整包；构建机没有音频和图形设备，播放自检未通过，未做设备验收"
+            printf '\n%s\n' "macOS（通用架构预览包，临时签名、未公证）："
+            printf '%s\n' "- *-macos-preview.zip：解压后得到 .app；尚未完成平台验收，可能需要自行签名"
+            printf '%s\n' "- Windows / iOS 自动构建暂未启用，本次不提供对应附件"
             printf '\n%s\n' "校验：SHA256SUMS.txt"
             if printf '%s\n' "${{ vars.ANDROID_CERT_SHA256 }}" | grep -q .; then
               printf '%s\n' "签名证书 SHA-256：${{ vars.ANDROID_CERT_SHA256 }}"

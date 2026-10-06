@@ -135,7 +135,7 @@ class LanController extends ChangeNotifier with WidgetsBindingObserver {
     if (name is String && name.trim().isNotEmpty) return name;
     return switch (kind) {
       'tv' => '电视',
-      'computer' => '电脑',
+      'computer' => Platform.isMacOS ? 'Mac' : '电脑',
       _ => Platform.isIOS ? 'iPhone' : 'Android 手机',
     };
   }
