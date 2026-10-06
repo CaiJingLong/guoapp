@@ -96,14 +96,14 @@ macOS 当前按独立桌面应用接入，关闭 App Sandbox，以沿用用户�
 
 ### GitHub Actions
 
-推送 `main` / `master`、`v*` 标签、提交 PR，或手动运行 **Build app packages**，会先检查再构建两版（默认与 `--all-sources`）：
+推送 `main` / `master` / `feat/macos-*` 分支、`v*` 标签、提交 PR，或手动运行 **Build app packages**，会先检查再构建两版（默认与 `--all-sources`）：
 
 | 产物 | 内容 |
 | --- | --- |
 | `*-android` | 三种架构 APK 和 SHA256 |
 | `*-macos` | arm64 / x86_64 通用 `.app` ZIP 和 SHA256，临时签名、未公证 |
 
-macOS 在 `macos-26` runner 上分别构建红果版和全站源版，固定 Flutter 3.47.4，校验主程序 / Go dylib 的两种架构、嵌套签名和 ZIP 摘要。PR 只执行检查、构建和上传 Actions 产物，不创建 Release；Windows / iOS 的占位构建原本处于关闭状态，本轮未启用。
+macOS 在 `macos-26` runner 上分别构建红果版和全站源版，固定 Flutter 3.47.4，校验主程序 / Go dylib 的两种架构、嵌套签名和 ZIP 摘要。PR 与功能分支推送只执行检查、构建和上传 Actions 产物，不创建 Release；Windows / iOS 的占位构建原本处于关闭状态，本轮未启用。
 
 当 `checks`、Android、macOS 作业均成功，且事件为 `main` / `master` / `v*` 标签推送，或在默认分支手动触发时，自动创建 / 更新 GitHub Release（tag `app-v{version}`，版本号中的 `+` 转为 `-`）。工作流默认只有 `contents: read`，发布作业单独获得写权限。全量 Dart / Go 回归仍沿用现有非阻断策略，作业成功不表示全量测试通过。发布新版本前需先提升 `pubspec.yaml` 的版本，否则会更新同名 Release。
 
