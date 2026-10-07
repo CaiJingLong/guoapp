@@ -176,8 +176,8 @@ jobs:
           set -euo pipefail
           app=build/macos/Build/Products/Release/duanju_app.app
           for arch in arm64 x86_64; do
-            lipo -verify_arch "$arch" "$app/Contents/MacOS/duanju_app"
-            lipo -verify_arch "$arch" "$app/Contents/Frameworks/libduanju_core.dylib"
+            lipo "$app/Contents/MacOS/duanju_app" -verify_arch "$arch"
+            lipo "$app/Contents/Frameworks/libduanju_core.dylib" -verify_arch "$arch"
           done
           codesign --verify --deep --strict "$app"
           cd dist/macos
