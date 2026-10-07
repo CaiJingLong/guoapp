@@ -39,3 +39,12 @@
 不要查看、下载、分析或处理站源图片。页面可正常显示海报地址；开发验证使用合成数据或拦截图片请求。用户直接提供的界面截图可以查看。
 
 遵守先实现后集中验证的节奏；未经用户明确要求，不启动子 AGENT。
+
+
+## 个人 fork 维护
+
+用户已授权维护 fork、独立 worktree、签名提交、推送与两个上游 PR。`origin` 指向个人 fork，`upstream` 指向原仓库。`main` 仅快进跟随上游；`personal` 为个人整合分支和默认入口。播放修复与 macOS 实现保持独立分支，个人维护配置不混入上游 PR。
+
+本 fork 的 worktree 收尾使用 `python3 scripts/finish_task.py --destination . --message "本次实际完成的变更"`，随后执行 `python3 scripts/sync_source.py --destination . --check`，避免覆盖其他源码工作区。版本仅在功能变更时递增；维护说明和 CI 配置调整不单独递增应用版本。
+
+同步上游不强制推送，也不自动覆盖 `personal`。个人预览包只通过手动工作流显式勾选发布；普通推送仅执行检查和构建。播放核心回归必须通过；全量测试的已知失败继续在 README 中披露，不把非阻断作业成功称为全量验收通过。

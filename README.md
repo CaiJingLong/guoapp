@@ -6,7 +6,22 @@ Flutter 多端独立短剧 / 影视应用，原名「短剧库 APP」。站源�
 
 本分支新增 macOS 工程、Go 动态库编译嵌入、桌面窗口 / 全屏、系统代理、设备识别、本机签名入口及合成媒体集成测试，并接入双版本 GitHub Actions 构建与预览包发布。
 
-共享 Go 核心的 MP4 / HLS 误判修复单独提交于 [播放修复 PR #3](https://github.com/zhoufuweigg/guoapp/pull/3)，不包含在此平台分支中。两者都从上游 `main` 分出；建议先合入播放修复，再对 macOS 做完整媒体验收。下文已通过的播放集成结果来自同时包含该修复的本地组合版本，不能当作当前独立分支已通过播放验收的证明。
+本 fork 的默认分支 `personal` 已整合 MP4 / HLS 误判修复和 macOS 支持。上游贡献仍保留为两个独立分支及 PR，个人维护配置只放在 `personal`。
+
+## Fork 维护
+
+| 分支 | 用途 |
+| --- | --- |
+| `main` | 跟随 [上游](https://github.com/zhoufuweigg/guoapp)，仅快进同步，不放个人改动 |
+| `personal` | 默认分支，整合修复、macOS 支持及个人构建配置 |
+| `fix/media-format-detection` | 独立播放修复，对应 [上游 PR #3](https://github.com/zhoufuweigg/guoapp/pull/3) |
+| `feat/macos-support` | 独立 macOS 实现，对应 [上游 Draft PR #4](https://github.com/zhoufuweigg/guoapp/pull/4) |
+
+本地 `origin` 指向 [个人 fork](https://github.com/CaiJingLong/guoapp)，`upstream` 指向原仓库；默认推送到 `origin`。各功能分支使用独立 worktree，避免混入彼此的提交。
+
+在 Actions 手动运行 **Sync upstream main**（选择 `personal`）可将远端 `main` 快进到上游。若历史分叉，工作流停止，不强制覆盖。该操作不会改动 `personal` 或两个 PR 分支，也没有定时任务。需要更新个人版时，在 `personal` 工作区执行 `git fetch upstream`、`git merge upstream/main`，处理冲突并验证后再推送 `origin personal`。
+
+## 版本说明
 
 默认可见站源顺序为：**红果 → 韩小圈 → 鬼片 → 青空**。
 
@@ -87,16 +102,17 @@ macOS 当前按独立桌面应用接入，关闭 App Sandbox，以沿用用户�
 - [ ] 验收真实站源搜索、详情、选集、错误重试与长期播放，修复全量回归失败。
 - [ ] 验收代理切换、局域网互联、完整合并队列与退出时任务恢复。
 - [x] 配置两版 macOS 通用架构构建、签名 / 摘要校验、Actions 产物和受信任事件的预览包发布。
-- [ ] 合入播放修复后复验 macOS 媒体集成，并观察首次云端 CI。
+- [x] 在独立 `personal` 分支整合播放修复和 macOS 支持，保留两个独立上游 PR。
+- [ ] 完成个人分支云端构建确认及后续 macOS 媒体复验。
 - [ ] 补 Intel 实机、最低系统版本、应用图标和公证；当前工程使用 Flutter 模板图标。
 
-2026-10-07 本地组合版本的验证环境为 Flutter 3.47.4 / Dart 3.13.3、Xcode 27.0、CocoaPods 1.15.2、Go 1.27.1。Python 脚本测试 19 项通过；Go 播放与下载相关 race 测试通过；macOS 集成测试通过，并输出 `build/device-test/results/playback.json`。Computer Use 已确认合成 MP4 / HLS / CENC 的实际画面、选集及进入 / 退出全屏。Flutter 全量单元测试 132 项通过、23 项失败，涉及焦点、目录、下载、媒体合并等现有行为与断言；Go 全量测试在目录缓存 / 游标测试失败并触发 panic；Dart 全量分析无 error，有 105 项 warning / info，新增 macOS 验证文件分析无问题。上述结果不代表全项目通过验收，Android / Windows / iOS 本轮未构建。
+2026-10-07 本地组合版本的验证环境为 Flutter 3.47.4 / Dart 3.13.3、Xcode 27.0、CocoaPods 1.15.2、Go 1.27.1。Python 脚本测试 19 项通过；Go 播放与下载相关 race 测试通过；macOS 集成测试通过，并输出 `build/device-test/results/playback.json`。Computer Use 已确认合成 MP4 / HLS / CENC 的实际画面、选集及进入 / 退出全屏。Flutter 全量单元测试 132 项通过、23 项失败，涉及焦点、目录、下载、媒体合并等现有行为与断言；Go 全量测试在目录缓存 / 游标测试失败并触发 panic；Dart 全量分析无 error，有 105 项 warning / info，新增 macOS 验证文件分析无问题。上述结果不代表全项目通过验收。后续云端 Android 两版构建通过；Windows / iOS 本轮未构建。
 
 `INSTALL_FAILED_NO_MATCHING_ABIS` 表示 APK 与设备架构不匹配，请更换对应架构安装包。
 
 ### GitHub Actions
 
-推送 `main` / `master` / `feat/macos-*` 分支、`v*` 标签、提交 PR，或手动运行 **Build app packages**，会先检查再构建两版（默认与 `--all-sources`）：
+个人分支推送、提交 PR，或手动运行 **Build app packages**，会检查并构建两版（默认与 `--all-sources`）。两种站源配置的播放 / 下载核心 race 回归是构建前的强制检查：
 
 | 产物 | 内容 |
 | --- | --- |
@@ -105,9 +121,9 @@ macOS 当前按独立桌面应用接入，关闭 App Sandbox，以沿用用户�
 
 macOS 在 `macos-26` runner 上分别构建红果版和全站源版，固定 Flutter 3.47.4，校验主程序 / Go dylib 的两种架构、嵌套签名和 ZIP 摘要。PR 与功能分支推送只执行检查、构建和上传 Actions 产物，不创建 Release；Windows / iOS 的占位构建原本处于关闭状态，本轮未启用。
 
-当 `checks`、Android、macOS 作业均成功，且事件为 `main` / `master` / `v*` 标签推送，或在默认分支手动触发时，自动创建 / 更新 GitHub Release（tag `app-v{version}`，版本号中的 `+` 转为 `-`）。工作流默认只有 `contents: read`，发布作业单独获得写权限。全量 Dart / Go 回归仍沿用现有非阻断策略，作业成功不表示全量测试通过。发布新版本前需先提升 `pubspec.yaml` 的版本，否则会更新同名 Release。
+只有在本 fork 的 `personal` 分支手动运行时勾选 `publish_preview`，且 `checks`、播放核心回归、Android、macOS 作业全部成功，才创建 / 更新个人预览 Release（tag `personal-v{version}`，版本号中的 `+` 转为 `-`，标记为 prerelease）。该选项默认关闭，普通推送仅生成 Actions 产物。工作流默认只有 `contents: read`，发布作业单独获得写权限。全量 Dart / Go 回归仍沿用现有非阻断策略，作业成功不表示全量测试通过。发布新版本前需先提升 `pubspec.yaml` 的版本，否则会更新同名 Release。
 
-云端 macOS 使用 ad-hoc 临时签名，不需要 Apple 证书 Secrets，也不包含本机 Apple Development 证书；正式分发签名和公证尚未接入。工作流配置已通过 actionlint；独立 worktree 的两版 Release 构建、签名 / 摘要校验、19 项 Python 测试及新增 Dart 验证文件分析通过。本地结果不代替 GitHub runner 的首次实跑。
+云端 macOS 使用 ad-hoc 临时签名，不需要 Apple 证书 Secrets，也不包含本机 Apple Development 证书；正式分发签名和公证尚未接入。工作流配置已通过 actionlint；独立 worktree 的两版 Release 构建、签名 / 摘要校验、19 项 Python 测试及新增 Dart 验证文件分析通过。云端播放核心回归与 Android 两版构建已通过。macOS 首轮已完成编译和签名，但因 Xcode 的 `lipo` 参数顺序在产物校验步骤失败；参数已修正，重跑结果以 Actions 为准。
 
 Android 正式发布使用同一签名并递增构建号，在仓库 Secrets 配置：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS`、`ANDROID_KEY_PASSWORD`。未配置时生成 debug 签名预览包。
 
@@ -214,11 +230,11 @@ flutter drive --driver=test_driver/playback.dart --target=integration_test/playb
 ### 源码同步
 
 ~~~sh
-python3 scripts/finish_task.py --message "本次实际完成的变更"
-python3 scripts/sync_source.py --check
+python3 scripts/finish_task.py --destination . --message "本次实际完成的变更"
+python3 scripts/sync_source.py --destination . --check
 ~~~
 
-脚本只同步纯源码到同级 `../guoapp`，并生成 `真果·鉴-YYYYMMDDHHMM.zip` 源码压缩包；不执行 Git 提交、分支或推送。
+在本 fork 的 worktree 内使用 `--destination .` 跳过向其他源码工作区同步，并生成 `真果·鉴-YYYYMMDDHHMM.zip` 源码压缩包。脚本不执行 Git 提交、分支或推送。
 
 ## 目录结构
 

@@ -1,0 +1,37 @@
+name: Sync upstream main
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream-main
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'CaiJingLong/guoapp' && github.ref == 'refs/heads/personal'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: 仅快进上游镜像
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/zhoufuweigg/guoapp.git
+          git fetch --no-tags upstream main
+          if ! git merge-base --is-ancestor HEAD FETCH_HEAD; then
+            echo '::error::main 已偏离上游，停止同步；不会覆盖本地提交。'
+            exit 1
+          fi
+          target=$(git rev-parse FETCH_HEAD)
+          git push origin "$target:refs/heads/main"
+          {
+            echo "main 已同步到上游提交 $target。"
+            echo 'personal 与两个上游 PR 分支保持不变；请在 personal 中合并上游并验证后再推送。'
+          } >> "$GITHUB_STEP_SUMMARY"
